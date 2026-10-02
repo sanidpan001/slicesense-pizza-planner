@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SliceSense — Pizza Party Planner: How Many Pizzas to Order Calculator</title>
+<meta name="description" content="SliceSense is a free pizza party planner and pizza calculator for groups. Find out exactly how many pizzas to order, plan diets, estimate sides, split the bill with tax & tip, and optimize half-and-half pizzas.">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --cream:#FFF6E9; --paper:#FFFDF7; --red:#D62828; --green:#2A9D48; --ink:#3B2A1A; }
+  body { background:var(--cream); color:var(--ink); font-family:'Inter',system-ui,sans-serif; }
+  .font-display { font-family:'Bungee',cursive; }
+  .ticket {
+    background:var(--paper);
+    border:3px solid var(--ink);
+    box-shadow: 8px 8px 0 rgba(59,42,26,.9);
+  }
+  .zigzag-top {
+    height:18px;
+    background:
+      linear-gradient(-45deg, transparent 12px, var(--paper) 0) 0 0 / 24px 24px repeat-x,
+      linear-gradient(45deg, transparent 12px, var(--paper) 0) 12px 0 / 24px 24px repeat-x;
+    filter: drop-shadow(0 -3px 0 var(--ink));
+  }
+  .zigzag-bottom {
+    height:18px;
+    background:
+      linear-gradient(45deg, transparent 12px, var(--paper) 0) 0 0 / 24px 24px repeat-x,
+      linear-gradient(-45deg, transparent 12px, var(--paper) 0) 12px 0 / 24px 24px repeat-x;
+    filter: drop-shadow(0 3px 0 var(--ink));
+  }
+  .perforation { border-top:3px dashed rgba(59,42,26,.35); position:relative; }
+  .punch { position:absolute; top:-16px; width:30px; height:30px; border-radius:9999px; background:var(--cream); border:3px solid var(--ink); }
+  .stamp {
+    border:4px solid var(--green); color:var(--green);
+    border-radius:12px; transform:rotate(-8deg);
+    mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+  }
+  .stamp-red { border-color:var(--red); color:var(--red); transform:rotate(6deg); }
+  .stub-label { background:var(--ink); color:var(--cream); }
+  input[type=number], input[type=text], select {
+    background:#fff; border:2px solid var(--ink); border-radius:10px;
+    padding:.55rem .75rem; font-weight:600; width:100%; color:var(--ink);
+  }
+  input:focus, select:focus { outline:3px solid rgba(214,40,40,.35); }
+  .btn-fire {
+    background:var(--red); color:#fff; border:3px solid var(--ink);
+    box-shadow:4px 4px 0 var(--ink); transition:transform .08s, box-shadow .08s;
+  }
+  .btn-fire:hover { transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--ink); }
+  .btn-fire:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink); }
+  .btn-leaf {
+    background:var(--green); color:#fff; border:3px solid var(--ink);
+    box-shadow:4px 4px 0 var(--ink); transition:transform .08s, box-shadow .08s;
+  }
+  .btn-leaf:hover { transform:translate(-1px,-1px); box-shadow:5px 5px 0 var(--ink); }
+  .btn-leaf:active { transform:translate(3px,3px); box-shadow:1px 1px 0 var(--ink); }
+  .bell-shake { animation:bellshake .6s ease; }
+  @keyframes bellshake {
+    0%,100%{transform:rotate(0)} 20%{transform:rotate(-14deg)} 40%{transform:rotate(12deg)}
+    60%{transform:rotate(-8deg)} 80%{transform:rotate(6deg)}
+  }
+  .diet-badge { border:2px solid var(--ink); }
+  .faq-item summary { cursor:pointer; }
+  .checkers { background-image:repeating-conic-gradient(var(--red) 0 25%, var(--paper) 0 50%); background-size:28px 28px; }
+  @media print { .no-print { display:none !important; } }
+</style>
+</head>
+<body id="top" class="min-h-screen">
+
+<!-- STICKY HEADER -->
+<header class="no-print sticky top-0 z-50 border-b-4" style="background:#FFFDF7;border-color:#3B2A1A">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 h-16 flex items-center justify-between">
+    <a href="#top" class="font-display text-2xl sm:text-3xl" style="color:#D62828">🍕 SliceSense</a>
+    <nav class="flex items-center gap-4 sm:gap-6 text-sm sm:text-base font-bold">
+      <a href="#top" class="hover:underline" style="color:#3B2A1A">Home</a>
+      <a href="https://fixoraa.tech" class="hover:underline" style="color:#2A9D48">More Tools</a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-8 pb-2 text-center">
+  <div class="inline-block stamp font-display text-sm sm:text-base px-4 py-2 mb-4">UNLIMITED FREE USAGE</div>
+  <h1 class="font-display text-4xl sm:text-6xl leading-tight" style="color:#D62828">PIZZA PARTY<br>PLANNER</h1>
+  <p class="mt-3 text-lg sm:text-xl font-semibold max-w-2xl mx-auto">How many pizzas should you order for your group? Punch in your headcount and diets — SliceSense writes the perfect order ticket, estimates sides, splits the bill, and optimizes half-and-half pizzas.</p>
+  <div class="mt-4 flex flex-wrap justify-center gap-2 text-sm font-bold">
+    <span class="diet-badge rounded-full px-3 py-1" style="background:#fff">🍕 Pizza calculator</span>
+    <span class="diet-badge rounded-full px-3 py-1" style="background:#fff">🥗 Diet planner</span>
+    <span class="diet-badge rounded-full px-3 py-1" style="background:#fff">🧾 Bill splitter</span>
+    <span class="diet-badge rounded-full px-3 py-1" style="background:#fff">⚖️ Half-and-half optimizer</span>
+  </div>
+</section>
+
+<!-- TOP AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <div class="origin-top scale-[0.44] sm:scale-100 shrink-0">
+        <script>
+          atOptions = { 'key' : '4e68ac77881c17fe128a46565d9a4e8c', 'format' : 'iframe', 'height' : 90, 'width' : 728, 'params' : {} };
+        </script>
+        <script src="https://www.highrevenueformat.com/4e68ac77881c17fe128a46565d9a4e8c/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ THE ORDER TICKET ============ -->
+<main class="mx-auto max-w-6xl px-4 sm:px-6 py-8">
+  <div class="zigzag-top"></div>
+  <div class="ticket px-4 sm:px-8 py-6">
+
+    <!-- TICKET HEAD -->
+    <div class="text-center pb-4">
+      <div class="font-display text-xl sm:text-2xl tracking-wide">★ SLICESENSE PIZZERIA ★</div>
+      <div class="text-sm font-semibold opacity-80">ORDER TICKET № <span id="ticket-no" class="font-bold">0001</span> &nbsp;·&nbsp; DINE-IN / PARTY</div>
+      <button id="bell-btn" class="btn-fire font-display rounded-xl px-6 py-3 mt-4 text-lg">🔔 RING THE BELL — ORDER UP!</button>
+      <div id="bell-msg" class="mt-2 font-bold h-6" style="color:#2A9D48"></div>
+    </div>
+
+    <!-- STUB 01 : HEADCOUNT -->
+    <div class="perforation pt-6 mt-2">
+      <span class="punch" style="left:-34px"></span><span class="punch" style="right:-34px"></span>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="stub-label font-display rounded-lg px-3 py-1 text-sm">STUB 01</span>
+        <h2 class="font-display text-2xl sm:text-3xl" style="color:#D62828">HEADCOUNT → PIZZAS</h2>
+      </div>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div>
+          <label for="in-guests" class="font-bold text-sm">Guests</label>
+          <input id="in-guests" type="number" min="0" max="1000" value="10">
+        </div>
+        <div>
+          <label for="in-spp" class="font-bold text-sm">Slices per person</label>
+          <input id="in-spp" type="number" min="0" max="20" step="0.5" value="3">
+          <div class="flex gap-2 mt-2">
+            <button data-spp="2" class="spp-preset diet-badge rounded-full px-3 py-1 text-xs font-bold" style="background:#fff">Light · 2</button>
+            <button data-spp="3" class="spp-preset diet-badge rounded-full px-3 py-1 text-xs font-bold" style="background:#fff">Regular · 3</button>
+            <button data-spp="5" class="spp-preset diet-badge rounded-full px-3 py-1 text-xs font-bold" style="background:#fff">Hungry · 5</button>
+          </div>
+        </div>
+        <div>
+          <label for="in-spz" class="font-bold text-sm">Slices per pizza</label>
+          <select id="in-spz">
+            <option value="6">6 — small</option>
+            <option value="8" selected>8 — standard large</option>
+            <option value="10">10 — extra-large</option>
+            <option value="12">12 — sheet pan</option>
+          </select>
+        </div>
+      </div>
+      <div id="head-msg" class="mt-3 text-sm font-semibold" style="color:#D62828"></div>
+      <div class="mt-4 rounded-2xl p-5 text-center" style="background:#D62828;border:3px solid #3B2A1A">
+        <div class="text-xs font-bold tracking-widest uppercase" style="color:#FFF6E9">Order this many pizzas</div>
+        <div id="out-pizzas" class="font-display text-6xl sm:text-7xl" style="color:#fff">4</div>
+        <div class="mt-2 text-sm font-bold" style="color:#FFF6E9"><span id="out-slices">30</span> slices total · Best size: <span id="out-size">14" large</span></div>
+      </div>
+    </div>
+
+    <!-- STUB 02 : DIETARY SPLIT -->
+    <div class="perforation pt-6 mt-8">
+      <span class="punch" style="left:-34px"></span><span class="punch" style="right:-34px"></span>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="stub-label font-display rounded-lg px-3 py-1 text-sm">STUB 02</span>
+        <h2 class="font-display text-2xl sm:text-3xl" style="color:#D62828">DIETARY SPLIT PLANNER</h2>
+      </div>
+      <p class="text-sm font-medium mb-4 opacity-80">Enter guests by diet. SliceSense recommends how many of each pizza type to order so every group is covered — nobody stares at an empty plate.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="rounded-xl p-3" style="background:#EAF7EC;border:2px solid #3B2A1A">
+          <label for="d-veg" class="font-bold text-sm">🥬 Vegetarian</label>
+          <input id="d-veg" type="number" min="0" max="1000" value="4" class="mt-1">
+        </div>
+        <div class="rounded-xl p-3" style="background:#FDECEC;border:2px solid #3B2A1A">
+          <label for="d-nonveg" class="font-bold text-sm">🍗 Non-veg</label>
+          <input id="d-nonveg" type="number" min="0" max="1000" value="4" class="mt-1">
+        </div>
+        <div class="rounded-xl p-3" style="background:#EAF7EC;border:2px solid #3B2A1A">
+          <label for="d-vegan" class="font-bold text-sm">🌱 Vegan</label>
+          <input id="d-vegan" type="number" min="0" max="1000" value="1" class="mt-1">
+        </div>
+        <div class="rounded-xl p-3" style="background:#FFF3D6;border:2px solid #3B2A1A">
+          <label for="d-gf" class="font-bold text-sm">🌾 Gluten-free</label>
+          <input id="d-gf" type="number" min="0" max="1000" value="1" class="mt-1">
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-3">
+        <button id="diet-sync" class="btn-leaf font-bold rounded-xl px-5 py-2">Use as party headcount</button>
+        <button id="diet-clear" class="diet-badge font-bold rounded-xl px-5 py-2" style="background:#fff">Reset diets</button>
+      </div>
+      <div id="diet-msg" class="mt-3 text-sm font-semibold" style="color:#D62828"></div>
+      <div id="diet-out" class="mt-4 overflow-x-auto"></div>
+      <ul id="diet-notes" class="mt-3 text-sm font-medium list-disc pl-5 space-y-1 opacity-90"></ul>
+    </div>
+
+    <!-- STUB 03 : SIDES & DRINKS -->
+    <div class="perforation pt-6 mt-8">
+      <span class="punch" style="left:-34px"></span><span class="punch" style="right:-34px"></span>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="stub-label font-display rounded-lg px-3 py-1 text-sm">STUB 03</span>
+        <h2 class="font-display text-2xl sm:text-3xl" style="color:#D62828">SIDES &amp; DRINKS ESTIMATOR</h2>
+      </div>
+      <p class="text-sm font-medium mb-4 opacity-80">Quantities scale automatically from your headcount above. Nobody wants a pizza party with no wings.</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-4" id="sides-grid">
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🍗</div><div class="font-display text-3xl mt-1" id="side-wings" style="color:#D62828">40</div>
+          <div class="text-xs font-bold uppercase tracking-wide">Wings (pieces)</div>
+        </div>
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🧄</div><div class="font-display text-3xl mt-1" id="side-garlic" style="color:#D62828">25</div>
+          <div class="text-xs font-bold uppercase tracking-wide">Garlic bread (pieces)</div>
+        </div>
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🥤</div><div class="font-display text-3xl mt-1" id="side-cans" style="color:#D62828">15</div>
+          <div class="text-xs font-bold uppercase tracking-wide">Soda cans</div>
+        </div>
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🍾</div><div class="font-display text-3xl mt-1" id="side-bottles" style="color:#2A9D48">3</div>
+          <div class="text-xs font-bold uppercase tracking-wide">2L bottles <span class="normal-case font-semibold">(instead of cans)</span></div>
+        </div>
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🥗</div><div class="font-display text-3xl mt-1" id="side-salad" style="color:#2A9D48">2</div>
+          <div class="text-xs font-bold uppercase tracking-wide">Salad bowls (serves ~6)</div>
+        </div>
+        <div class="rounded-xl p-4 text-center" style="background:#fff;border:2px solid #3B2A1A">
+          <div class="text-3xl">🫕</div><div class="font-display text-3xl mt-1" id="side-dips" style="color:#2A9D48">3</div>
+          <div class="text-xs font-bold uppercase tracking-wide">Dip cups (serves ~4)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STUB 04 : BILL SPLITTER -->
+    <div class="perforation pt-6 mt-8">
+      <span class="punch" style="left:-34px"></span><span class="punch" style="right:-34px"></span>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="stub-label font-display rounded-lg px-3 py-1 text-sm">STUB 04</span>
+        <h2 class="font-display text-2xl sm:text-3xl" style="color:#D62828">COST SPLITTER + TAX &amp; TIP</h2>
+      </div>
+      <p class="text-sm font-medium mb-4 opacity-80">Split the bill fairly. Set weights when some people eat (and pay) more — the shares always add up to the exact total, down to the cent.</p>
+      <div class="grid sm:grid-cols-3 gap-4 mb-4">
+        <div>
+          <label for="bill-total" class="font-bold text-sm">Food bill (pre-tax)</label>
+          <input id="bill-total" type="number" min="0" step="0.01" value="60">
+        </div>
+        <div>
+          <label for="bill-tax" class="font-bold text-sm">Tax %</label>
+          <input id="bill-tax" type="number" min="0" max="100" step="0.5" value="8">
+        </div>
+        <div>
+          <label for="bill-tip" class="font-bold text-sm">Tip %</label>
+          <input id="bill-tip" type="number" min="0" max="100" step="0.5" value="10">
+        </div>
+      </div>
+      <div class="font-bold text-sm mb-2">Who's paying? (weight 1 = normal share, 2 = pays double)</div>
+      <div id="bill-rows" class="space-y-2"></div>
+      <div class="mt-3 flex flex-wrap gap-3">
+        <button id="bill-add" class="btn-leaf font-bold rounded-xl px-5 py-2">+ Add person</button>
+        <button id="bill-calc" class="btn-fire font-bold rounded-xl px-5 py-2">Split the bill</button>
+      </div>
+      <div id="bill-msg" class="mt-3 text-sm font-semibold" style="color:#D62828"></div>
+      <div id="bill-out" class="mt-4"></div>
+    </div>
+
+    <!-- STUB 05 : HALF-AND-HALF OPTIMIZER -->
+    <div class="perforation pt-6 mt-8">
+      <span class="punch" style="left:-34px"></span><span class="punch" style="right:-34px"></span>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="stub-label font-display rounded-lg px-3 py-1 text-sm">STUB 05</span>
+        <h2 class="font-display text-2xl sm:text-3xl" style="color:#D62828">HALF-AND-HALF OPTIMIZER</h2>
+      </div>
+      <p class="text-sm font-medium mb-4 opacity-80">Mixed group? SliceSense pairs compatible diets onto half-and-half pizzas so you order fewer pizzas and waste fewer slices. Uses your diet numbers from Stub 02.</p>
+      <button id="hh-run" class="btn-fire font-bold rounded-xl px-6 py-3">⚖️ Optimize my order</button>
+      <div id="hh-msg" class="mt-3 text-sm font-semibold" style="color:#D62828"></div>
+      <div id="hh-out" class="mt-4"></div>
+    </div>
+
+    <!-- TICKET FOOT -->
+    <div class="text-center pt-6 mt-6" style="border-top:3px dashed rgba(59,42,26,.35)">
+      <div class="font-display text-lg" style="color:#2A9D48">★ THANK YOU — COME HUNGRY ★</div>
+      <div class="text-xs font-semibold opacity-70 mt-1">No signup · No paywall · No watermark · Just pizza math</div>
+    </div>
+
+  </div>
+  <div class="zigzag-bottom"></div>
+</main>
+
+<!-- BOTTOM AD (verbatim) -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="464498"></script>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SEO ARTICLE ============ -->
+<article class="mx-auto max-w-4xl px-4 sm:px-6 py-10 prose-styles">
+  <h2 class="font-display text-3xl sm:text-4xl mb-6" style="color:#D62828">How Many Pizzas to Order: The Complete Pizza Party Planner Guide</h2>
+
+  <p class="mb-4">Few party questions cause more anxiety than this one: <strong>how many pizzas should I order?</strong> Order too few and your guests go hungry — the fastest way to ruin a good evening. Order too many and you're eating cold leftovers for a week while your wallet cries. The good news is that pizza math is simple once you know the formula, and a good <strong>pizza calculator for group</strong> gatherings takes all the guesswork out. This guide walks you through exactly how to calculate pizzas for any party size, from an intimate movie night to a 50-person office blowout.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">The Golden Rule: The 3-Slice Formula</h3>
+  <p class="mb-4">Professional caterers and pizzerias worldwide converge on one reliable rule: <strong>plan for 3 slices per adult</strong> when pizza is the main event. A standard large pizza is cut into 8 slices, so the core of every how many pizzas to order calculator is this formula: <em>pizzas = (guests × slices per person) ÷ slices per pizza</em>, rounded up. Ten guests at 3 slices each need 30 slices, which is 3.75 large pizzas — so you order 4. That single extra quarter-pizza is your safety buffer, and it is always cheaper than ordering a whole extra pizza later at delivery prices.</p>
+  <p class="mb-4">Adjust the slices-per-person number to your crowd. Teenagers and hungry twenty-somethings at a game night will demolish 4–5 slices each. A lunch meeting where people graze between slides needs only 2 slices per person. Kids under 10 average 1–2 slices. When in doubt, our pizza party planner defaults to 3 — the number that has survived decades of real-world party testing — and you can slide it up or down to match your crowd.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Quick Reference: Pizzas by Party Size</h3>
+  <p class="mb-4">For the planners who want an answer in five seconds, here is what the 3-slice rule produces for standard 8-slice large pizzas. Bookmark this table or just use the calculator above — it does the same math instantly, including for odd party sizes like 13 or 27.</p>
+  <ul class="list-disc pl-6 mb-4 space-y-1">
+    <li><strong>5 guests</strong> → 2 large pizzas (15 slices needed, 16 served)</li>
+    <li><strong>10 guests</strong> → 4 large pizzas (30 slices needed, 32 served)</li>
+    <li><strong>15 guests</strong> → 6 large pizzas (45 slices needed, 48 served)</li>
+    <li><strong>20 guests</strong> → 8 large pizzas (60 slices needed, 64 served)</li>
+    <li><strong>25 guests</strong> → 10 large pizzas (75 slices needed, 80 served)</li>
+    <li><strong>30 guests</strong> → 12 large pizzas (90 slices needed, 96 served)</li>
+    <li><strong>50 guests</strong> → 19 large pizzas (150 slices needed, 152 served)</li>
+  </ul>
+  <p class="mb-4">Notice the pattern: roughly <strong>one large pizza per 2.5 guests</strong> is the mental shortcut caterers use. It is not perfect — rounding always pushes you slightly above — but it gets you to the right neighborhood before you refine with the calculator.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Pizza Size Matters More Than You Think</h3>
+  <p class="mb-4">Not all pizzas are created equal. A 12-inch pizza has about 113 square inches of surface; a 16-inch pizza has about 201 — nearly <strong>double the pizza for a modest price bump</strong>. That is why large and extra-large pizzas are almost always the best value per slice. Our pizza calculator for group orders recommends a size based on your headcount: mediums for tiny gatherings of 4 or fewer, larges for the classic 5–12 person party, and extra-larges or sheet pans once you pass 25 guests. One more pro tip: most pizzerias cut extra-large pizzas into 10 slices instead of 8, which changes the math — the calculator above lets you set slices-per-pizza for exactly this reason.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Planning for Diets: Vegetarian, Vegan, and Gluten-Free Guests</h3>
+  <p class="mb-4">Modern parties are diet-diverse, and this is where most hosts get burned. Ordering five pepperoni pizzas for a group that includes three vegetarians means three hungry guests and a lot of awkward salad-eating. The fix is to plan each diet group as its own mini-party: count the vegetarians, count the vegans, count the gluten-free guests, and run the 3-slice formula on each group separately. That is exactly what the dietary split planner in our pizza party planner does.</p>
+  <p class="mb-4">A few coverage rules make diet planning much easier. <strong>Vegan pizzas are safe for vegetarians too</strong> — a vegan can never eat a regular veggie pizza (cheese!), but a vegetarian can always eat a vegan one. So one or two vegan pizzas can cover both groups. Similarly, <strong>veggie pizzas are safe for non-veg guests</strong>; meat-lovers will happily eat a margherita while vegetarians cannot touch a pepperoni. The only hard wall is gluten-free: those guests need a dedicated gluten-free base, and no amount of regular pizza helps them. Order their pizzas from a place that does proper GF crusts to avoid cross-contamination if anyone has celiac disease.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">The Half-and-Half Trick That Cuts Waste</h3>
+  <p class="mb-4">Here is the optimizer secret that separates amateur hosts from pros: <strong>half-and-half pizzas</strong>. Instead of ordering 2 whole veggie pizzas and 2 whole meat pizzas for a mixed group, order 3 pizzas split half-meat/half-veggie. You serve the same 24 slices of each preference with one fewer pizza — less money, less waste, fewer cold leftovers. The math works because separate whole pizzas each get rounded up independently (the classic rounding penalty), while combined pizzas round up only once. Our half-and-half optimizer pairs your diet groups automatically: vegan with veggie, veggie with meat, and keeps gluten-free on its own dedicated base. For a typical mixed group of 8–12, it routinely saves 1–2 pizzas — that is real money back in your pocket.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Don't Forget Sides and Drinks</h3>
+  <p class="mb-4">Pizza is the headliner, but sides are what make a party feel generous. The standard catering ratios that our sides estimator uses: <strong>4 chicken wings per person</strong>, 2–3 garlic bread pieces per person, and about 1.5 sodas per person (or one 2-litre bottle per 4 guests — far cheaper than cans). Add one large salad bowl per 6 guests for balance and dip cups at one per 4 guests. These numbers assume pizza remains the main course; if sides are the star (a wings-and-pizza sports night), bump wings to 6 per person and drop pizza slices to 2.5 per head.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Splitting the Bill Without the Awkwardness</h3>
+  <p class="mb-4">Nothing kills post-party vibes like a 20-minute argument over the bill. The fair way: add tax and tip to get the grand total, then divide — but not always evenly. In real groups, someone ate five slices while someone else had one and left early. Weighted splitting solves this: assign each person a weight (1 for a normal share, 2 for the big eater, 0.5 for the light eater) and everyone pays their proportional slice of the total including tax and tip. Our cost splitter does the cent-level math so the shares add up to the exact grand total — no "we're 37 cents short" moments. Pro tip: collect money <em>before</em> ordering, not after eating. People are far more generous when the pizza hasn't arrived yet.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Timing, Ordering, and Leftover Strategy</h3>
+  <p class="mb-4">Order timing matters. For parties over 15 people, call the pizzeria at least 60–90 minutes ahead — large multi-pizza orders go to the back of the oven queue during Friday and Saturday rushes. Ask for half the pizzas to arrive 30 minutes before the rest if your party has staggered arrivals; pizza quality falls off a cliff after 20 minutes in the box, and a second fresh wave beats one giant lukewarm mountain. For leftovers, the oven (not the microwave) is the revival tool: 5 minutes at 200°C on a tray restores the crisp. And if you consistently over-order, that is data — drop your slices-per-person setting by half a slice next time and watch the waste disappear.</p>
+
+  <h3 class="font-display text-2xl mt-8 mb-3" style="color:#3B2A1A">Why Use a Pizza Party Planner Instead of Guessing</h3>
+  <p class="mb-4">Guessing feels fast until it goes wrong, and pizza mistakes are expensive in both directions — hungry guests or wasted money. A dedicated pizza party planner turns five separate mental calculations (headcount math, diet coverage, sides, bill split, half-and-half pairing) into one coherent order ticket you can read straight to the pizzeria. SliceSense does all of it free, with no signup and no watermark, and the ticket layout is designed to be screenshot-friendly: show it at the counter or paste it into your group chat. Whether you're Googling "how many pizzas to order calculator" at the last minute or planning a 50-person event weeks ahead, the math is the same — and now you never have to do it by hand again.</p>
+</article>
+
+<!-- ============ FAQ ============ -->
+<section class="mx-auto max-w-4xl px-4 sm:px-6 pb-12">
+  <h2 class="font-display text-3xl mb-6 text-center" style="color:#D62828">FREQUENTLY ASKED QUESTIONS</h2>
+  <div class="space-y-3">
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">How many pizzas do I need for 10 people?</summary>
+      <p class="mt-2 text-sm">For 10 adults with pizza as the main meal, order <strong>4 large (8-slice) pizzas</strong>. The standard rule is 3 slices per person: 10 × 3 = 30 slices needed, and 4 pizzas serve 32 slices. Use the how many pizzas to order calculator above for exact numbers with your own appetite settings.</p>
+    </details>
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">How many slices of pizza per person for a party?</summary>
+      <p class="mt-2 text-sm">Plan <strong>3 slices per adult</strong> as the default — it is the catering industry standard. Use 2 slices for light eaters or lunch events, 4–5 for teenagers, game nights, or very hungry crowds, and 1–2 for young children. The pizza party planner lets you adjust this per party.</p>
+    </details>
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">How do I order pizza for vegetarians, vegans, and gluten-free guests?</summary>
+      <p class="mt-2 text-sm">Count each diet group separately and apply the 3-slice rule to each. Remember the coverage shortcuts: <strong>vegan pizzas work for vegetarians too</strong>, veggie pizzas work for meat-eaters, but gluten-free guests need a dedicated GF base. Enter your numbers in the dietary split planner above and it builds the order for you.</p>
+    </details>
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">What are half-and-half pizzas and do they save money?</summary>
+      <p class="mt-2 text-sm">A half-and-half pizza has two different toppings on each half — e.g., half pepperoni, half veggie. They save money for mixed groups because you avoid the rounding penalty of ordering separate whole pizzas for small groups. Our half-and-half optimizer typically <strong>saves 1–2 pizzas</strong> on a mixed order of 8–12 guests.</p>
+    </details>
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">How do you fairly split a pizza bill with tax and tip?</summary>
+      <p class="mt-2 text-sm">Add tax and tip to the food total first, then divide the grand total — not the subtotal. For fairness, use <strong>weighted shares</strong>: big eaters pay a weight of 2, light eaters 0.5, everyone else 1. The cost splitter above computes exact per-person amounts that sum to the precise total, down to the cent.</p>
+    </details>
+    <details class="faq-item ticket rounded-xl p-4">
+      <summary class="font-bold">Is SliceSense's pizza calculator for groups really free?</summary>
+      <p class="mt-2 text-sm">Yes — completely free with <strong>unlimited usage, no signup, no paywall, and no watermark</strong>. All calculations happen in your browser, so your party details never leave your device.</p>
+    </details>
+  </div>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How many pizzas do I need for 10 people?",
+      "acceptedAnswer": { "@type": "Answer", "text": "For 10 adults with pizza as the main meal, order 4 large (8-slice) pizzas. The standard rule is 3 slices per person: 10 × 3 = 30 slices needed, and 4 pizzas serve 32 slices." }
+    },
+    {
+      "@type": "Question",
+      "name": "How many slices of pizza per person for a party?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Plan 3 slices per adult as the default catering standard. Use 2 slices for light eaters, 4–5 for teenagers or hungry crowds, and 1–2 for young children." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I order pizza for vegetarians, vegans, and gluten-free guests?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Count each diet group separately and apply the 3-slice rule to each. Vegan pizzas work for vegetarians too, veggie pizzas work for meat-eaters, but gluten-free guests need a dedicated GF base." }
+    },
+    {
+      "@type": "Question",
+      "name": "What are half-and-half pizzas and do they save money?",
+      "acceptedAnswer": { "@type": "Answer", "text": "A half-and-half pizza has two different toppings on each half. They save money for mixed groups by avoiding the rounding penalty of separate whole pizzas — typically 1–2 pizzas saved on a mixed order of 8–12 guests." }
+    },
+    {
+      "@type": "Question",
+      "name": "How do you fairly split a pizza bill with tax and tip?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Add tax and tip to the food total first, then divide the grand total. Use weighted shares for fairness: big eaters weight 2, light eaters 0.5, everyone else 1." }
+    },
+    {
+      "@type": "Question",
+      "name": "Is SliceSense's pizza calculator for groups really free?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes — completely free with unlimited usage, no signup, no paywall, and no watermark. All calculations happen in your browser." }
+    }
+  ]
+}
+</script>
+
+<footer class="border-t-4 mt-4" style="border-color:#3B2A1A;background:#FFFDF7">
+  <div class="checkers h-4"></div>
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-8 text-center">
+    <div class="font-display text-2xl" style="color:#D62828">🍕 SliceSense</div>
+    <p class="text-sm font-semibold mt-2 opacity-80">Free pizza party planner · How many pizzas to order calculator · No signup, no paywall, ever.</p>
+    <nav class="mt-3 flex justify-center gap-6 text-sm font-bold">
+      <a href="#top" class="hover:underline">Home</a>
+      <a href="https://fixoraa.tech" class="hover:underline" style="color:#2A9D48">More Tools</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- LIB (inlined at build time) -->
+<script id="slicesense-pizza-planner-lib">
+/* SliceSense Pizza Party Planner — pure logic.
+ * No DOM, no window, no localStorage, no navigator.
+ * All functions are top-level `function` declarations so a test harness
+ * can eval this file with `new Function` and pull the names out.
+ */
+
+var SLICES_PER_PERSON_DEFAULT = 3;
+var SLICES_PER_PIZZA_DEFAULT = 8;
+
+function _toNonNegInt(v, fallback) {
+  var n = Math.floor(Number(v));
+  if (!isFinite(n) || n < 0) n = fallback;
+  return n;
+}
+
+function _toNonNegNum(v, fallback) {
+  var n = Number(v);
+  if (!isFinite(n) || n < 0) n = fallback;
+  return n;
+}
+
+function _clamp(v, lo, hi) {
+  if (v < lo) return lo;
+  if (v > hi) return hi;
+  return v;
+}
+
+/* How many whole pizzas to order.
+ * guests: headcount; slicesPerPerson: appetite (default 3);
+ * slicesPerPizza: 8 for a standard large (default 8).
+ * Returns integer >= 0. */
+function pizzasNeeded(guests, slicesPerPerson, slicesPerPizza) {
+  guests = _toNonNegInt(guests, 0);
+  slicesPerPerson = (slicesPerPerson === null || slicesPerPerson === undefined || slicesPerPerson === '')
+    ? SLICES_PER_PERSON_DEFAULT : _toNonNegNum(slicesPerPerson, SLICES_PER_PERSON_DEFAULT);
+  slicesPerPizza = (slicesPerPizza === null || slicesPerPizza === undefined || slicesPerPizza === '')
+    ? SLICES_PER_PIZZA_DEFAULT : _toNonNegInt(slicesPerPizza, SLICES_PER_PIZZA_DEFAULT);
+  if (slicesPerPizza <= 0) slicesPerPizza = SLICES_PER_PIZZA_DEFAULT;
+  if (guests === 0 || slicesPerPerson === 0) return 0;
+  return Math.ceil((guests * slicesPerPerson) / slicesPerPizza);
+}
+
+/* Total slices the party needs. */
+function totalSlicesNeeded(guests, slicesPerPerson) {
+  guests = _toNonNegInt(guests, 0);
+  slicesPerPerson = (slicesPerPerson === null || slicesPerPerson === undefined || slicesPerPerson === '')
+    ? SLICES_PER_PERSON_DEFAULT : _toNonNegNum(slicesPerPerson, SLICES_PER_PERSON_DEFAULT);
+  return guests * slicesPerPerson;
+}
+
+/* Recommended pizza size for a group. Returns a string or null. */
+function pizzaSizeFor(guests) {
+  guests = _toNonNegInt(guests, 0);
+  if (guests === 0) return null;
+  if (guests <= 4) return '12" medium';
+  if (guests <= 12) return '14" large';
+  if (guests <= 25) return '16" extra-large';
+  return 'mix of 16" extra-large + sheet pans';
+}
+
+/* Dietary split planner.
+ * guestsByDiet: {veg, nonveg, vegan, glutenfree} counts.
+ * Returns per-diet-group pizza counts plus coverage notes.
+ * Coverage rules baked in:
+ *  - vegan pizzas are safe for vegans AND vegetarians
+ *  - veggie pizzas are safe for vegetarians AND non-veg guests
+ *  - meat pizzas are only for non-veg guests
+ *  - gluten-free guests need a dedicated gluten-free base */
+function dietarySplit(guestsByDiet, slicesPerPerson, slicesPerPizza) {
+  var d = guestsByDiet || {};
+  var groups = [
+    { key: 'veg',        label: 'Vegetarian',   pizzaType: 'Veggie',       alsoFor: ['Vegetarians', 'non-veg guests'] },
+    { key: 'nonveg',     label: 'Non-veg',      pizzaType: 'Meat',         alsoFor: ['Non-veg guests only'] },
+    { key: 'vegan',      label: 'Vegan',        pizzaType: 'Vegan',        alsoFor: ['Vegans', 'vegetarians'] },
+    { key: 'glutenfree', label: 'Gluten-free',  pizzaType: 'Gluten-free',  alsoFor: ['Gluten-free guests only'] }
+  ];
+  var plan = [];
+  var totalPizzas = 0;
+  var totalGuests = 0;
+  groups.forEach(function (g) {
+    var n = _toNonNegInt(d[g.key], 0);
+    var p = pizzasNeeded(n, slicesPerPerson, slicesPerPizza);
+    totalGuests += n;
+    totalPizzas += p;
+    plan.push({
+      diet: g.key,
+      label: g.label,
+      pizzaType: g.type,
+      guests: n,
+      pizzas: p,
+      alsoFor: g.alsoFor
+    });
+  });
+  return {
+    groups: plan,
+    totalGuests: totalGuests,
+    totalPizzas: totalPizzas,
+    notes: [
+      'Vegan pizzas work for vegans and vegetarians — one vegan pizza can cover both groups.',
+      'Veggie pizzas are safe for vegetarians and non-veg guests alike; order a couple extra for flexibility.',
+      'Meat pizzas only suit non-veg guests — keep them separate on the order ticket.',
+      'Gluten-free guests need a dedicated gluten-free base; regular pizzas cannot be substituted.'
+    ]
+  };
+}
+
+/* Sides & drinks estimator. Quantities scale from the guest count.
+ * Returns per-item quantities (pieces / cans / bottles / bowls). */
+function sidesEstimate(guests) {
+  guests = _toNonNegInt(guests, 0);
+  return {
+    guests: guests,
+    wings: Math.ceil(guests * 4),          // chicken wing pieces
+    garlicBread: Math.ceil(guests * 2.5), // garlic bread pieces
+    sodaCans: Math.ceil(guests * 1.5),    // 330ml cans
+    sodaBottles: Math.ceil(guests / 4),   // 2-litre bottles (alternative)
+    saladBowls: Math.ceil(guests / 6),    // serves ~6 each
+    dips: Math.ceil(guests / 4)           // dip cups, serves ~4 each
+  };
+}
+
+/* Largest-remainder rounding: distribute `grand` (in cents) across
+ * shares so the rounded values add up exactly. */
+function _largestRemainder(exactCents, totalCents) {
+  var floors = exactCents.map(function (x) { return Math.floor(x); });
+  var used = floors.reduce(function (a, b) { return a + b; }, 0);
+  var leftover = totalCents - used;
+  var order = exactCents
+    .map(function (x, i) { return { i: i, frac: x - Math.floor(x) }; })
+    .sort(function (a, b) { return b.frac - a.frac; });
+  var result = floors.slice();
+  for (var k = 0; k < leftover && k < order.length; k++) {
+    result[order[k].i] += 1;
+  }
+  return result;
+}
+
+/* Cost splitter with tax & tip and weighted payers.
+ * total: pre-tax food bill. weights: array of per-person weights
+ * (1 = normal share, 2 = pays double, 0.5 = pays half, 0 = excluded).
+ * Returns totals plus per-person shares that sum EXACTLY to the
+ * grand total (tax + tip included). */
+function splitBill(total, weights, taxPct, tipPct) {
+  total = Math.max(0, _toNonNegNum(total, 0));
+  taxPct = _clamp(_toNonNegNum(taxPct, 0), 0, 100);
+  tipPct = _clamp(_toNonNegNum(tipPct, 0), 0, 100);
+
+  var w = (weights || [])
+    .map(function (x) { return _toNonNegNum(x, 0); })
+    .filter(function (x) { return x > 0; });
+  if (w.length === 0) w = [1];
+
+  var sumW = w.reduce(function (a, b) { return a + b; }, 0);
+  var tax = total * taxPct / 100;
+  var tip = total * tipPct / 100;
+  var grand = total + tax + tip;
+  var grandCents = Math.round(grand * 100);
+
+  var exactCents = w.map(function (wi) { return (grand * wi / sumW) * 100; });
+  var roundedCents = _largestRemainder(exactCents, grandCents);
+  var shares = roundedCents.map(function (c) { return c / 100; });
+
+  return {
+    subtotal: Math.round(total * 100) / 100,
+    tax: Math.round(tax * 100) / 100,
+    tip: Math.round(tip * 100) / 100,
+    taxPct: taxPct,
+    tipPct: tipPct,
+    grandTotal: grandCents / 100,
+    shares: shares,
+    count: w.length,
+    weights: w
+  };
+}
+
+/* Half-and-half optimizer.
+ * Pairs compatible diet groups onto half-and-half pizzas so fewer
+ * whole pizzas are ordered (less waste).
+ * Pairing rules:
+ *  - gluten-free is always separate (dedicated base)
+ *  - vegan + vegetarian -> half Vegan / half Veggie (veg guests can eat the vegan half)
+ *  - vegetarian + non-veg -> half Meat / half Veggie (classic crowd-pleaser)
+ *  - lone groups get whole pizzas of their own type
+ * Returns the combo plan plus savings vs ordering every group separately. */
+function halfHalfPlan(guestsByDiet, slicesPerPerson, slicesPerPizza) {
+  var d = guestsByDiet || {};
+  slicesPerPerson = (slicesPerPerson === null || slicesPerPerson === undefined || slicesPerPerson === '')
+    ? SLICES_PER_PERSON_DEFAULT : _toNonNegNum(slicesPerPerson, SLICES_PER_PERSON_DEFAULT);
+  slicesPerPizza = (slicesPerPizza === null || slicesPerPizza === undefined || slicesPerPizza === '')
+    ? SLICES_PER_PIZZA_DEFAULT : _toNonNegInt(slicesPerPizza, SLICES_PER_PIZZA_DEFAULT);
+  if (slicesPerPizza <= 0) slicesPerPizza = SLICES_PER_PIZZA_DEFAULT;
+
+  var veg = _toNonNegInt(d.veg, 0);
+  var nonveg = _toNonNegInt(d.nonveg, 0);
+  var vegan = _toNonNegInt(d.vegan, 0);
+  var gf = _toNonNegInt(d.glutenfree, 0);
+
+  var combos = [];
+
+  if (gf > 0) {
+    combos.push({
+      halves: ['Gluten-free', 'Gluten-free'],
+      pizzas: pizzasNeeded(gf, slicesPerPerson, slicesPerPizza),
+      covers: 'Gluten-free guests (dedicated base)',
+      note: 'Gluten-free pizzas cannot be half-and-half with regular bases.'
+    });
+  }
+
+  var restVeg = veg;
+  var restNonveg = nonveg;
+
+  if (vegan > 0 && veg > 0) {
+    combos.push({
+      halves: ['Vegan', 'Veggie'],
+      pizzas: Math.ceil(((vegan + veg) * slicesPerPerson) / slicesPerPizza),
+      covers: 'Vegan + vegetarian guests',
+      note: 'Veg guests can eat the vegan half too — zero waste.'
+    });
+    restVeg = 0;
+  } else if (vegan > 0) {
+    combos.push({
+      halves: ['Vegan', 'Vegan'],
+      pizzas: pizzasNeeded(vegan, slicesPerPerson, slicesPerPizza),
+      covers: 'Vegan guests',
+      note: 'Whole vegan pizzas.'
+    });
+  }
+
+  if (restVeg > 0 && restNonveg > 0) {
+    combos.push({
+      halves: ['Meat', 'Veggie'],
+      pizzas: Math.ceil(((restVeg + restNonveg) * slicesPerPerson) / slicesPerPizza),
+      covers: 'Non-veg + vegetarian guests',
+      note: 'The classic crowd-pleaser: everyone finds a half they like.'
+    });
+    restVeg = 0;
+    restNonveg = 0;
+  }
+
+  if (restVeg > 0) {
+    combos.push({
+      halves: ['Veggie', 'Veggie'],
+      pizzas: pizzasNeeded(restVeg, slicesPerPerson, slicesPerPizza),
+      covers: 'Vegetarian guests',
+      note: 'Whole veggie pizzas.'
+    });
+  }
+  if (restNonveg > 0) {
+    combos.push({
+      halves: ['Meat', 'Meat'],
+      pizzas: pizzasNeeded(restNonveg, slicesPerPerson, slicesPerPizza),
+      covers: 'Non-veg guests',
+      note: 'Whole meat pizzas.'
+    });
+  }
+
+  var totalCombo = combos.reduce(function (a, c) { return a + c.pizzas; }, 0);
+  var separate = dietarySplit({ veg: veg, nonveg: nonveg, vegan: vegan, glutenfree: gf }, slicesPerPerson, slicesPerPizza);
+  var neededSlices = totalSlicesNeeded(veg + nonveg + vegan + gf, slicesPerPerson);
+  var wasteCombo = totalCombo * slicesPerPizza - neededSlices;
+  var wasteSeparate = separate.totalPizzas * slicesPerPizza - neededSlices;
+
+  return {
+    combos: combos,
+    totalPizzas: totalCombo,
+    separatePizzas: separate.totalPizzas,
+    pizzasSaved: separate.totalPizzas - totalCombo,
+    wasteSlicesCombo: wasteCombo,
+    wasteSlicesSeparate: wasteSeparate,
+    wasteSlicesSaved: wasteSeparate - wasteCombo
+  };
+}
+
+/* One-shot party summary: headcount math + diet plan + sides in a
+ * single object for the UI summary card. */
+function partySummary(guests, guestsByDiet, slicesPerPerson, slicesPerPizza) {
+  guests = _toNonNegInt(guests, 0);
+  var diet = dietarySplit(guestsByDiet, slicesPerPerson, slicesPerPizza);
+  return {
+    guests: guests,
+    pizzas: pizzasNeeded(guests, slicesPerPerson, slicesPerPizza),
+    size: pizzaSizeFor(guests),
+    totalSlices: totalSlicesNeeded(guests, slicesPerPerson),
+    dietPlan: diet,
+    sides: sidesEstimate(guests)
+  };
+}
+
+</script>
+
+<!-- UI WIRING -->
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var store = null;
+  try { store = window.localStorage; } catch (e) { store = null; }
+
+  function saveState() {
+    if (!store) return;
+    try {
+      store.setItem('slicesense-v1', JSON.stringify({
+        guests: $('in-guests').value, spp: $('in-spp').value, spz: $('in-spz').value,
+        veg: $('d-veg').value, nonveg: $('d-nonveg').value, vegan: $('d-vegan').value, gf: $('d-gf').value,
+        btotal: $('bill-total').value, btax: $('bill-tax').value, btip: $('bill-tip').value
+      }));
+    } catch (e) {}
+  }
+  function loadState() {
+    if (!store) return;
+    try {
+      var s = JSON.parse(store.getItem('slicesense-v1') || '{}');
+      if (s.guests !== undefined) $('in-guests').value = s.guests;
+      if (s.spp !== undefined) $('in-spp').value = s.spp;
+      if (s.spz !== undefined) $('in-spz').value = s.spz;
+      if (s.veg !== undefined) $('d-veg').value = s.veg;
+      if (s.nonveg !== undefined) $('d-nonveg').value = s.nonveg;
+      if (s.vegan !== undefined) $('d-vegan').value = s.vegan;
+      if (s.gf !== undefined) $('d-gf').value = s.gf;
+      if (s.btotal !== undefined) $('bill-total').value = s.btotal;
+      if (s.btax !== undefined) $('bill-tax').value = s.btax;
+      if (s.btip !== undefined) $('bill-tip').value = s.btip;
+    } catch (e) {}
+  }
+
+  /* ticket number: random 4-digit */
+  $('ticket-no').textContent = String(Math.floor(1000 + Math.random() * 9000));
+
+  /* ---- bell ---- */
+  var audioCtx = null;
+  function ding() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var t = audioCtx.currentTime;
+      [1568, 2093].forEach(function (f, i) {
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.value = f;
+        g.gain.setValueAtTime(0.25, t + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.8);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.9);
+      });
+    } catch (e) {}
+  }
+  $('bell-btn').addEventListener('click', function () {
+    var b = $('bell-btn');
+    b.classList.remove('bell-shake'); void b.offsetWidth; b.classList.add('bell-shake');
+    ding();
+    $('bell-msg').textContent = 'DING DING! Order up — the kitchen has your ticket. 🍕';
+    setTimeout(function () { $('bell-msg').textContent = ''; }, 3000);
+  });
+
+  /* ---- stub 01 ---- */
+  function dietVals() {
+    return {
+      veg: $('d-veg').value, nonveg: $('d-nonveg').value,
+      vegan: $('d-vegan').value, glutenfree: $('d-gf').value
+    };
+  }
+  function renderHead() {
+    var g = $('in-guests').value, spp = $('in-spp').value, spz = $('in-spz').value;
+    var msg = '';
+    if (String(g).trim() === '' || Number(g) < 0) msg = 'Please enter a valid guest count (0 or more).';
+    else if (Number(spp) < 0) msg = 'Slices per person can\'t be negative — using the default of 3.';
+    if (msg) $('head-msg').textContent = msg; else $('head-msg').textContent = '';
+    var pizzas = pizzasNeeded(g, spp, spz);
+    var slices = totalSlicesNeeded(g, spp);
+    var size = pizzaSizeFor(g);
+    $('out-pizzas').textContent = pizzas;
+    $('out-slices').textContent = slices;
+    $('out-size').textContent = size || '—';
+    saveState();
+  }
+  ['in-guests', 'in-spp', 'in-spz'].forEach(function (id) {
+    $(id).addEventListener('input', renderHead);
+    $(id).addEventListener('change', renderHead);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.spp-preset'), function (btn) {
+    btn.addEventListener('click', function () { $('in-spp').value = btn.getAttribute('data-spp'); renderHead(); });
+  });
+
+  /* ---- stub 02 ---- */
+  var DIET_META = [
+    { key: 'veg', label: '🥬 Vegetarian', color: '#2A9D48' },
+    { key: 'nonveg', label: '🍗 Non-veg', color: '#D62828' },
+    { key: 'vegan', label: '🌱 Vegan', color: '#2A9D48' },
+    { key: 'glutenfree', label: '🌾 Gluten-free', color: '#B8860B' }
+  ];
+  function renderDiet() {
+    var spp = $('in-spp').value, spz = $('in-spz').value;
+    var plan = dietarySplit(dietVals(), spp, spz);
+    var html = '<table class="w-full text-sm" style="border:2px solid #3B2A1A;background:#fff;border-radius:12px;overflow:hidden">';
+    html += '<thead><tr style="background:#3B2A1A;color:#FFF6E9"><th class="p-2 text-left">Group</th><th class="p-2">Guests</th><th class="p-2 text-left">Order</th><th class="p-2">Pizzas</th></tr></thead><tbody>';
+    plan.groups.forEach(function (gr, i) {
+      var meta = DIET_META[i];
+      html += '<tr style="border-top:1px solid #e5dcc8">' +
+        '<td class="p-2 font-bold">' + meta.label + '</td>' +
+        '<td class="p-2 text-center font-bold">' + gr.guests + '</td>' +
+        '<td class="p-2"><span class="diet-badge rounded-full px-2 py-0.5 text-xs font-bold" style="background:#FFF6E9">' + gr.pizzas + '× ' + gr.pizzaType + '</span></td>' +
+        '<td class="p-2 text-center font-display text-xl" style="color:' + meta.color + '">' + gr.pizzas + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div class="mt-3 rounded-xl p-3 text-center font-bold" style="background:#3B2A1A;color:#FFF6E9">TOTAL ON THE TICKET: <span class="font-display text-2xl" style="color:#fff">' + plan.totalPizzas + '</span> pizzas for ' + plan.totalGuests + ' guests</div>';
+    $('diet-out').innerHTML = html;
+    $('diet-notes').innerHTML = plan.notes.map(function (n) { return '<li>' + n + '</li>'; }).join('');
+    if (plan.totalGuests === 0) $('diet-msg').textContent = 'Enter at least one guest above to build an order plan.';
+    else $('diet-msg').textContent = '';
+    saveState();
+  }
+  ['d-veg', 'd-nonveg', 'd-vegan', 'd-gf'].forEach(function (id) {
+    $(id).addEventListener('input', function () { renderDiet(); renderHalfHalf(false); });
+    $(id).addEventListener('change', function () { renderDiet(); renderHalfHalf(false); });
+  });
+  $('diet-sync').addEventListener('click', function () {
+    var d = dietVals();
+    var sum = ['veg', 'nonveg', 'vegan', 'glutenfree'].reduce(function (a, k) {
+      var n = Math.floor(Number(d[k])); return a + (isFinite(n) && n > 0 ? n : 0);
+    }, 0);
+    $('in-guests').value = sum;
+    renderHead(); renderSides();
+    $('bell-msg').textContent = 'Headcount synced: ' + sum + ' guests. 🍕';
+    setTimeout(function () { $('bell-msg').textContent = ''; }, 2500);
+  });
+  $('diet-clear').addEventListener('click', function () {
+    ['d-veg', 'd-nonveg', 'd-vegan', 'd-gf'].forEach(function (id) { $(id).value = 0; });
+    renderDiet(); renderHalfHalf(false);
+  });
+
+  /* ---- stub 03 ---- */
+  function renderSides() {
+    var s = sidesEstimate($('in-guests').value);
+    $('side-wings').textContent = s.wings;
+    $('side-garlic').textContent = s.garlicBread;
+    $('side-cans').textContent = s.sodaCans;
+    $('side-bottles').textContent = s.sodaBottles;
+    $('side-salad').textContent = s.saladBowls;
+    $('side-dips').textContent = s.dips;
+  }
+
+  /* ---- stub 04 ---- */
+  var billRowCount = 0;
+  function addBillRow(name, weight) {
+    billRowCount++;
+    var div = document.createElement('div');
+    div.className = 'flex gap-2 items-center bill-row';
+    div.innerHTML =
+      '<input type="text" placeholder="Name (optional)" value="' + (name || '') + '" class="bill-name" aria-label="Payer name">' +
+      '<select class="bill-weight" style="max-width:130px" aria-label="Share weight">' +
+      '<option value="0.5">0.5× light</option>' +
+      '<option value="1" selected>1× normal</option>' +
+      '<option value="1.5">1.5× hearty</option>' +
+      '<option value="2">2× double</option>' +
+      '</select>' +
+      '<button class="bill-remove diet-badge rounded-lg px-3 py-2 font-bold" style="background:#fff" aria-label="Remove person">✕</button>';
+    if (weight) div.querySelector('.bill-weight').value = String(weight);
+    div.querySelector('.bill-remove').addEventListener('click', function () {
+      if (document.querySelectorAll('.bill-row').length > 1) div.remove();
+      else $('bill-msg').textContent = 'You need at least one payer.';
+    });
+    $('bill-rows').appendChild(div);
+  }
+  function money(n) { return '$' + n.toFixed(2); }
+  function renderBill() {
+    var total = $('bill-total').value, tax = $('bill-tax').value, tip = $('bill-tip').value;
+    if (String(total).trim() === '' || Number(total) < 0) { $('bill-msg').textContent = 'Please enter a valid bill total (0 or more).'; $('bill-out').innerHTML = ''; return; }
+    $('bill-msg').textContent = '';
+    var rows = document.querySelectorAll('.bill-row');
+    var weights = [], names = [];
+    rows.forEach(function (r, i) {
+      weights.push(r.querySelector('.bill-weight').value);
+      var nm = r.querySelector('.bill-name').value.trim();
+      names.push(nm || ('Guest ' + (i + 1)));
+    });
+    var res = splitBill(total, weights, tax, tip);
+    var html = '<div class="rounded-xl p-4" style="background:#fff;border:2px solid #3B2A1A">';
+    html += '<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-sm font-bold mb-3">' +
+      '<div>Subtotal<br><span class="font-display text-lg">' + money(res.subtotal) + '</span></div>' +
+      '<div>Tax (' + res.taxPct + '%)<br><span class="font-display text-lg">' + money(res.tax) + '</span></div>' +
+      '<div>Tip (' + res.tipPct + '%)<br><span class="font-display text-lg">' + money(res.tip) + '</span></div>' +
+      '<div style="color:#D62828">Grand total<br><span class="font-display text-lg">' + money(res.grandTotal) + '</span></div></div>';
+    html += '<table class="w-full text-sm"><thead><tr class="text-left" style="border-bottom:2px solid #3B2A1A"><th class="p-2">Payer</th><th class="p-2">Weight</th><th class="p-2 text-right">Pays</th></tr></thead><tbody>';
+    res.shares.forEach(function (sh, i) {
+      html += '<tr style="border-bottom:1px solid #eee"><td class="p-2 font-bold">' + names[i].replace(/</g, '&lt;') + '</td>' +
+        '<td class="p-2">' + res.weights[i] + '×</td>' +
+        '<td class="p-2 text-right font-display text-lg" style="color:#2A9D48">' + money(sh) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<div class="text-xs font-semibold mt-2 opacity-70">Shares add up to exactly ' + money(res.grandTotal) + ' — tax &amp; tip included.</div></div>';
+    $('bill-out').innerHTML = html;
+    saveState();
+  }
+  $('bill-add').addEventListener('click', function () { addBillRow('', 1); });
+  $('bill-calc').addEventListener('click', renderBill);
+  ['bill-total', 'bill-tax', 'bill-tip'].forEach(function (id) {
+    $(id).addEventListener('input', saveState);
+  });
+
+  /* ---- stub 05 ---- */
+  function renderHalfHalf(showMsg) {
+    var spp = $('in-spp').value, spz = $('in-spz').value;
+    var res = halfHalfPlan(dietVals(), spp, spz);
+    if (res.combos.length === 0) {
+      if (showMsg !== false) $('hh-msg').textContent = 'Enter your diet numbers in Stub 02 first, then optimize.';
+      $('hh-out').innerHTML = '';
+      return;
+    }
+    $('hh-msg').textContent = '';
+    var html = '<div class="grid sm:grid-cols-2 gap-4">';
+    res.combos.forEach(function (c) {
+      var halfLabel = c.halves[0] === c.halves[1]
+        ? 'Whole ' + c.halves[0]
+        : '½ ' + c.halves[0] + ' / ½ ' + c.halves[1];
+      html += '<div class="rounded-xl p-4" style="background:#fff;border:2px solid #3B2A1A">' +
+        '<div class="font-display text-lg" style="color:#D62828">🍕 ' + halfLabel + '</div>' +
+        '<div class="font-bold text-sm mt-1">× ' + c.pizzas + ' pizza' + (c.pizzas === 1 ? '' : 's') + '</div>' +
+        '<div class="text-xs font-semibold opacity-80 mt-1">' + c.covers + '</div>' +
+        '<div class="text-xs mt-1" style="color:#2A9D48;font-weight:600">' + c.note + '</div></div>';
+    });
+    html += '</div>';
+    html += '<div class="mt-4 rounded-xl p-4 text-center font-bold" style="background:#2A9D48;border:3px solid #3B2A1A;color:#fff">';
+    if (res.pizzasSaved > 0) {
+      html += 'YOU SAVE <span class="font-display text-3xl">' + res.pizzasSaved + '</span> PIZZA' + (res.pizzasSaved === 1 ? '' : 'S') +
+        ' vs ordering separately (' + res.separatePizzas + ' → ' + res.totalPizzas + ') · ' +
+        res.wasteSlicesSaved + ' fewer wasted slices 🎉';
+    } else {
+      html += 'OPTIMIZED: ' + res.totalPizzas + ' pizzas — your groups are already perfectly packed, no waste to cut. 👌';
+    }
+    html += '</div>';
+    $('hh-out').innerHTML = html;
+  }
+  $('hh-run').addEventListener('click', function () { renderHalfHalf(true); ding(); });
+
+  /* ---- init ---- */
+  loadState();
+  addBillRow('You', 1); addBillRow('', 1); addBillRow('', 1); addBillRow('', 1);
+  renderHead(); renderDiet(); renderSides(); renderHalfHalf(false);
+  $('in-guests').addEventListener('input', renderSides);
+  $('in-guests').addEventListener('change', renderSides);
+})();
+</script>
+</body>
+</html>
